@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diet-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: diet-ai
+  template:
+    metadata:
+      labels:
+        app: diet-ai
+    spec:
+      containers:
+        - name: ai
+          image: yourrepo/diet-ai:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: diet-secrets
+                  key: OPENAI_API_KEY
+            - name: LLM_MODEL
+              value: gpt-4o-mini
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: diet-ai
+spec:
+  selector:
+    app: diet-ai
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000 

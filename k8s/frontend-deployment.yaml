@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diet-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: diet-frontend
+  template:
+    metadata:
+      labels:
+        app: diet-frontend
+    spec:
+      containers:
+        - name: web
+          image: yourrepo/diet-frontend:latest
+          ports:
+            - containerPort: 80
+          env:
+            - name: VITE_API_BASE
+              value: http://diet-api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: diet-frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: diet-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80 

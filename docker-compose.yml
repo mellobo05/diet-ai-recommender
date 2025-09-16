@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dietdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  api:
+    build: ./backend/api
+    command: npm run dev
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/dietdb?schema=public
+      PORT: 4000
+      AI_SERVICE_URL: http://ai:8000
+    ports:
+      - "4000:4000"
+    depends_on:
+      - db
+      - ai
+    volumes:
+      - ./backend/api:/app
+      - ./prisma:/app/prisma
+
+  ai:
+    build: ./backend/ai
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      LLM_PROVIDER: ${LLM_PROVIDER}
+      LLM_MODEL: ${LLM_MODEL}
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    command: npm run dev -- --host 0.0.0.0
+    environment:
+      VITE_API_BASE: http://localhost:4000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+
+volumes:
+  db_data: 
