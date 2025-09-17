@@ -1,0 +1,45 @@
+name: Deploy API to Azure Web App
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/api/**'
+      - '.github/workflows/azure-webapp-api.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Archive app for deployment
+        run: zip -r ../api-release.zip . -x "node_modules/*"
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME_API }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_API }}
+          package: backend/api/../api-release.zip
+
+      - name: Post-deploy warmup (optional)
+        run: |
+          echo "Deployment triggered. Ensure App Service Startup Command runs Prisma migrations:"
+          echo "npx prisma migrate deploy && node src/server.js"
+

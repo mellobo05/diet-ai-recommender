@@ -1,0 +1,9 @@
+# API service env example
+# Render will inject PORT automatically
+PORT=4000
+# Use Render Postgres or any external Postgres
+DATABASE_URL=postgresql://user:pass@host:5432/dietdb?schema=public
+# Point to the AI service URL (Hugging Face Space)
+AI_SERVICE_URL=https://your-ai-space.hf.space
+# Optional logging level
+LOG_LEVEL=info

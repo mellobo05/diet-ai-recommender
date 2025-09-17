@@ -1,0 +1,52 @@
+name: Deploy AI to Azure Web App
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/ai/**'
+      - '.github/workflows/azure-webapp-ai.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/ai
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt --no-cache-dir
+
+      - name: Smoke import
+        run: python - << 'PY'
+import importlib
+import sys
+for m in ['fastapi','pydantic']:
+    importlib.import_module(m)
+print('Imports OK')
+PY
+
+      - name: Archive app for deployment
+        run: zip -r ../ai-release.zip . -x "*.venv*" "__pycache__/*"
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME_AI }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_AI }}
+          package: backend/ai/../ai-release.zip
+
+      - name: Post-deploy note
+        run: |
+          echo "Ensure App Service Startup Command is: uvicorn main:app --host 0.0.0.0 --port 8000"
+

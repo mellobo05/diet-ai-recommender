@@ -1,0 +1,57 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  onDiet    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  externalId    String?  @unique
+  title         String
+  description   String?
+  category      String?
+  price         Float
+  discountPct   Float    @default(0)
+  finalPrice    Float    @default(0)
+  calories      Int?
+  proteinGrams  Float?
+  fatGrams      Float?
+  carbsGrams    Float?
+  keywords      String[]
+  isDiet        Boolean?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  orderItems    OrderItem[]
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  user       User        @relation(fields: [userId], references: [id])
+  userId     String
+  createdAt  DateTime    @default(now())
+  orderItems OrderItem[]
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  order      Order   @relation(fields: [orderId], references: [id])
+  orderId    String
+  product    Product @relation(fields: [productId], references: [id])
+  productId  String
+  quantity   Int     @default(1)
+  unitPrice  Float
+  isDiet     Boolean @default(false)
+} 

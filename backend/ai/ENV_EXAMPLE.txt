@@ -1,0 +1,7 @@
+# AI service env example
+LLM_PROVIDER=google
+GOOGLE_API_KEY=your_google_api_key
+LLM_MODEL=gemini-1.5-flash
+# Alternatively use OpenAI
+# LLM_PROVIDER=openai
+# OPENAI_API_KEY=sk-your-openai-key
