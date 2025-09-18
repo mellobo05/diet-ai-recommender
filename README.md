@@ -2,6 +2,15 @@
 
 Full-stack app: React + Tailwind (frontend), Express + Prisma + PostgreSQL (API), FastAPI (AI classifier).
 
+## Live (Production)
+- Frontend (Vercel): `https://diet-ai-frontend-kappa.vercel.app`
+- API (Render): `https://diet-ai-api.onrender.com`
+- AI (Hugging Face Space): your Space base URL
+
+Notes:
+- Frontend calls `GET /recommend/top?limit=8` on the API.
+- API calls AI at `POST /classify/batch`. If AI is unavailable, it falls back to local scoring using `isDiet`.
+
 ## Structure
 - `backend/api` – Node.js Express API
 - `backend/ai` – Python FastAPI classifier
@@ -163,22 +172,40 @@ Notes:
 ## Free-friendly deployment (Hugging Face + Vercel + Render)
 
 - AI (Python FastAPI) → Hugging Face Spaces (free CPU):
-  1) Put `backend/ai` in its own repo with the updated `Dockerfile` that uses `PORT`.
-  2) Create a new Space → Type: Docker → Hardware: CPU Basic.
-  3) Add Secrets: `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `LLM_PROVIDER`, `LLM_MODEL`.
-  4) Deploy. Space URL becomes your AI base URL.
+  1) Put `backend/ai` in its own repo (we did: diet-ai-ai).
+  2) Space Type: Docker → CPU Basic.
+  3) Secrets: `LLM_PROVIDER`, `GOOGLE_API_KEY` (optional), `OPENAI_API_KEY` (optional), `LLM_MODEL`.
+  4) `backend/ai/Dockerfile` uses: `CMD ["uvicorn","app:app","--host","0.0.0.0","--port","7860"]` and exposes 7860. Spaces provides `PORT` automatically.
 
 - Frontend (Vite) → Vercel (free):
-  1) Push `frontend/` to its own repo; import to Vercel as Vite.
-  2) Env var: `VITE_API_BASE` = your API URL from Render.
-  3) Deploy. Update CORS on API to allow the Vercel domain if you lock origins.
+  1) Repo: diet-ai-frontend → imported as Vite project.
+  2) Production Env var: `VITE_API_BASE = https://diet-ai-api.onrender.com`
+  3) Push to `main` → Vercel auto-deploys Production at `https://diet-ai-frontend-kappa.vercel.app`.
+  4) Public: anyone can open the URL (no Vercel login needed). Add a custom domain if desired.
 
 - API (Express + Prisma) → Render (free):
-  1) Push `backend/api` to its own repo; create a Render Web Service.
-  2) Build: `npm install && npx prisma generate`; Start: `npm run start`.
-  3) Env vars: `DATABASE_URL` (use Render free Postgres or start with SQLite),
-     `AI_SERVICE_URL` = your Hugging Face Space URL, `PORT` provided by Render.
-  4) If using Postgres: also run `npx prisma migrate deploy` (via start command or shell).
+  1) Repo: diet-ai-api → Render Web Service (Node).
+  2) Build Command: `npm run build` where `build` runs `npm install && npx prisma generate && npx prisma migrate deploy`.
+  3) Start Command: `npm run start`.
+  4) Env vars: `DATABASE_URL` (Render Postgres External Connection String), `AI_SERVICE_URL` (Space base URL), `PORT` (Render provides), optional `NODE_ENV=production`.
+  5) Migrations: checked in under `prisma/migrations`. On build, `migrate deploy` creates tables.
+  6) Seed (demo): temporarily set Build Command to `npm run build && npm run seed`, deploy once, then revert to `npm run build`.
+
+### Data seeding via CSV (demo)
+- `deploy-export/api/data/products.csv` contains sample items.
+- `deploy-export/api/src/seed.js` imports from the CSV into the `Product` table and upserts a demo user.
+
+### CORS
+The API enables CORS for `*` by default (or your Vercel domain). If you restrict origins, include your Vercel production URL.
+
+### Troubleshooting
+- 502 at `GET /recommend/top`: ensure `AI_SERVICE_URL` is set on Render; with our fallback, the endpoint still returns items marked `isDiet=true`.
+- Prisma error P2021 (missing tables): ensure Build Command includes `npx prisma migrate deploy` and migrations are committed.
+- Hugging Face "No application file": ensure AI entry `app.py` and Docker `uvicorn app:app`.
+- Spaces "--port requires an argument": use JSON-array `CMD` with a fixed port (7860) in Dockerfile.
+
+## Mobile access
+The Vercel URL is public. Open `https://diet-ai-frontend-kappa.vercel.app` on any phone. To share, create a QR code pointing to that URL.
 
 Notes:
 - The AI `Dockerfile` now runs: `uvicorn main:app --host 0.0.0.0 --port ${PORT:-7860}` so Spaces works.
